@@ -91,7 +91,8 @@
 			; before we receive a response.
 			ID := this.ID += 1
 			this.ws.Send(Chrome.Jxon_Dump({"id": ID
-			, "method": DomainAndMethod, "params": Params}))
+			, "params": Params ? Params : {}
+			, "method": DomainAndMethod}))
 			
 			if !WaitForResponse
 				return
