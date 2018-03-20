@@ -1,14 +1,12 @@
 ﻿class Chrome
 {
-	static DebugPort := 9222
-	
 	; Escape a string in a manner suitable for command line parameters
 	CliEscape(Param)
 	{
 		return """" RegExReplace(Param, "(\\*)""", "$1$1\""") """"
 	}
 	
-	__New(ProfilePath:="", URL:="about:blank", ChromePath:="", DebugPort:="")
+	__New(ProfilePath:="", URL:="about:blank", Flags:="", ChromePath:="", DebugPort:=9222)
 	{
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
 			throw Exception("The given ProfilePath does not exist")
@@ -21,17 +19,18 @@
 			throw Exception("Chrome could not be found")
 		this.ChromePath := ChromePath
 		
-		if (DebugPort != "")
-		{
-			this.DebugPort := Round(DebugPort)
-			if (this.DebugPort <= 0) ; TODO: Support DebugPort of 0
-				throw Exception("DebugPort must be a positive integer")
-		}
+		; Verify DebugPort
+		if DebugPort is not integer
+			throw Exception("DebugPort must be a positive integer")
+		if (DebugPort <= 0)
+			throw Exception("DebugPort must be a positive integer")
+		this.DebugPort := DebugPort
 		
 		; TODO: Support an array of URLs
 		Run, % this.CliEscape(ChromePath)
 		. " --remote-debugging-port=" this.DebugPort
 		. (ProfilePath ? " --user-data-dir=" this.CliEscape(ProfilePath) : "")
+		. (Flags ? " " Flags : "")
 		. (URL ? " " this.CliEscape(URL) : "")
 	}
 	
