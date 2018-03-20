@@ -32,6 +32,13 @@
 		. (ProfilePath ? " --user-data-dir=" this.CliEscape(ProfilePath) : "")
 		. (Flags ? " " Flags : "")
 		. (URL ? " " this.CliEscape(URL) : "")
+		,,, OutputVarPID
+		this.PID := OutputVarPID
+	}
+	
+	Kill()
+	{
+		Process, Close, % this.PID
 	}
 	
 	GetTabs()
