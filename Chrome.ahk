@@ -41,7 +41,7 @@
 		Process, Close, % this.PID
 	}
 	
-	GetTabs()
+	GetPageList()
 	{
 		http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 		http.open("GET", "http://127.0.0.1:" this.DebugPort "/json")
@@ -49,7 +49,7 @@
 		return this.Jxon_Load(http.responseText)
 	}
 	
-	GetTab(Index:=0)
+	GetPage(Index:=0)
 	{
 		; TODO: Filter pages by type before returning an indexed page
 		if (Index > 0)
@@ -60,7 +60,7 @@
 				return new this.Tab(Tab)
 	}
 	
-	class Tab
+	class Page
 	{
 		Connected := False
 		ID := 0
