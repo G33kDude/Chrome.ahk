@@ -1,51 +1,63 @@
 ﻿#NoEnv
 SetBatchLines, -1
 
+#Include ../Chrome.ahk
 
-; --- Create a new chrome instance ---
+
+; --- Create a new Chrome instance ---
 
 FileCreateDir, ChromeProfile
 ChromeInst := new Chrome("ChromeProfile", "https://autohotkey.com/")
 
 
-; --- Connect to the active tab ---
+; --- Connect to the page ---
 
-Tab := ChromeInst.GetTab()
-
-
-; --- Perform JavaScript injection ---
-
-Loop
+if !(PageInst := ChromeInst.GetPage())
 {
-	InputBox, JS,,
-	( LTrim
-	Enter some JavaScript to be run in the tab
+	MsgBox, Could not retrieve page!
+	ChromeInst.Kill()
+}
+else
+{
+	; --- Perform JavaScript injection ---
 	
-	For example:
-	alert('hi');
-	window.location = "https://p.ahkscript.org/";
-	)
-	
-	if ErrorLevel
-		break
-	
-	try
-		Result := Tab.Evaluate(JS)
-	catch e
+	Loop
 	{
-		MsgBox, % "Exception encountered in " e.What ":`n`n"
-		. e.Message "`n`n"
-		. "Specifically:`n`n"
-		. Chrome.Jxon_Dump(Chrome.Jxon_Load(e.Extra), "`t")
+		InputBox, JS,,
+		( LTrim
+		Enter some JavaScript to be run on the page, or leave blank to exit. For example:
 		
-		continue
+		alert('hi');
+		window.location = "https://p.ahkscript.org/";
+		)
+		
+		if (JS == "" || ErrorLevel)
+			break
+		
+		try
+			Result := PageInst.Evaluate(JS)
+		catch e
+		{
+			MsgBox, % "Exception encountered in " e.What ":`n`n"
+			. e.Message "`n`n"
+			. "Specifically:`n`n"
+			. Chrome.Jxon_Dump(Chrome.Jxon_Load(e.Extra), "`t")
+			
+			continue
+		}
+		
+		MsgBox, % "Result:`n" Chrome.Jxon_Dump(Result, "`t")
 	}
 	
-	MsgBox, % "Result: " Chrome.Jxon_Dump(Result)
+	
+	; --- Close the Chrome instance ---
+	
+	try
+		PageInst.Call("Browser.close") ; Fails when running headless
+	catch
+		ChromeInst.Kill()
+	PageInst.Disconnect()
 }
 
 ExitApp
 return
-
-
-#include ../Chrome.ahk
