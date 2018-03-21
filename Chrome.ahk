@@ -75,10 +75,7 @@
 	
 	GetPage(Index:=1, Type:="page")
 	{
-		Count := 0
-		for n, PageData in this.GetPageList()
-			if (PageData.type == Type && ++Count == Index)
-				return new this.Page(PageData.webSocketDebuggerUrl)
+		return this.GetPageBy("type", Type, "exact", Index)
 	}
 	
 	class Page
