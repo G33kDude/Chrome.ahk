@@ -49,15 +49,36 @@
 		return this.Jxon_Load(http.responseText)
 	}
 	
-	GetPage(Index:=0)
+	GetPageBy(Key, Value, MatchMode:="exact", Index:=1)
 	{
-		; TODO: Filter pages by type before returning an indexed page
-		if (Index > 0)
-			return new this.Tab(this.GetTabs()[Index])
-		
-		for Index, Tab in this.GetTabs()
-			if (Tab.type == "page")
-				return new this.Tab(Tab)
+		Count := 0
+		for n, PageData in this.GetPageList()
+		{
+			if (((MatchMode = "exact" && PageData[Key] = Value) ; Case insensitive
+			|| (MatchMode = "contains" && InStr(PageData[Key], Value))
+			|| (MatchMode = "startswith" && InStr(PageData[Key], Value) == 1)
+			|| (MatchMode = "regex" && PageData[Key] ~= Value))
+			&& ++Count == Index)
+				return new this.Page(PageData.webSocketDebuggerUrl)
+		}
+	}
+	
+	GetPageByURL(Value, MatchMode:="startswith", Index:=1)
+	{
+		this.GetPageBy("url", Value, MatchMode, Index)
+	}
+	
+	GetPageByTitle(Value, MatchMode:="startswith", Index:=1)
+	{
+		this.GetPageBy("title", Value, MatchMode, Index)
+	}
+	
+	GetPage(Index:=1, Type:="page")
+	{
+		Count := 0
+		for n, PageData in this.GetPageList()
+			if (PageData.type == Type && ++Count == Index)
+				return new this.Page(PageData.webSocketDebuggerUrl)
 	}
 	
 	class Page
