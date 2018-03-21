@@ -44,7 +44,7 @@ To start using this library you need to create an instance of the class `Chrome`
 3. **ChromePath** - The path to find the Chrome executable file. **When this parameter is omitted, Chrome will be launched from the path in its start menu entry.**
 4. **DebugPort** - The network port to communicate with Chrome over. **When this parameter is omitted, port `9222` will be used** as specified in the Chrome DevTools Protocol documentation.
 
-Once an instance of the class `Chrome` has been created, Google Chrome will be launched. To connect to the newly opened page call `TabInstance := ChromeInstance.GetTab()`. Afterward, use `Tab.Call()` to call protocol endpoints, and `Tab.Evaluate()` to execute JavaScript.
+Once an instance of the class `Chrome` has been created, Google Chrome will be launched. To connect to the newly opened page call `PageInstance := ChromeInstance.GetTab()`. Afterward, use `PageInstance.Call()` to call protocol endpoints, and `PageInstance.Evaluate()` to execute JavaScript.
 
 ```AutoHotkey
 #Include Chrome.ahk
@@ -57,15 +57,17 @@ ChromeInst := new Chrome("ChromeProfile")
 ; Connect to the newly opened tab and navigate to another website
 ; Note: If your first action is to navigate away, it may be just as
 ; effective to provide the target URL when instantiating the Chrome class
-Tab := ChromeInst.GetTab()
-Tab.Call("Page.navigate", {"url": "https://autohotkey.com/"})
-Tab.WaitForLoad()
+PageInst := ChromeInst.GetPage()
+PageInst.Call("Page.navigate", {"url": "https://autohotkey.com/"})
+PageInst.WaitForLoad()
 
 ; Execute some JavaScript
-Tab.Evaluate("alert('Hello World!');")
+PageInst.Evaluate("alert('Hello World!');")
 
 ; Close the browser (note: this closes *all* pages/tabs)
-Tab.Call("Browser.close")
+PageInst.Call("Browser.close")
+PageInst.Disconnect()
+
 ExitApp
 return
 ```
