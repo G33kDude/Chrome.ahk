@@ -1,17 +1,28 @@
 ﻿class Chrome
 {
-	; Escape a string in a manner suitable for command line parameters
+	/*
+		Escape a string in a manner suitable for command line parameters
+	*/
 	CliEscape(Param)
 	{
 		return """" RegExReplace(Param, "(\\*)""", "$1$1\""") """"
 	}
 	
+	/*
+		ProfilePath - Path to the user profile directory to use. Will use the standard if left blank.
+		URL         - The page for Chrome to load when it opens
+		Flags       - Additional flags for chrome when launching
+		ChromePath  - Path to chrome.exe, will detect from start menu when left blank
+		DebugPort   - What port should Chrome's remote debugging server run on
+	*/
 	__New(ProfilePath:="", URL:="about:blank", Flags:="", ChromePath:="", DebugPort:=9222)
 	{
+		; Verify ProfilePath
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
 			throw Exception("The given ProfilePath does not exist")
 		this.ProfilePath := ProfilePath
 		
+		; Verify ChromePath
 		; TODO: Perform a more rigorous search for Chrome
 		if (ChromePath == "")
 			FileGetShortcut, %A_StartMenuCommon%\Programs\Google Chrome.lnk, ChromePath
@@ -36,11 +47,19 @@
 		this.PID := OutputVarPID
 	}
 	
+	/*
+		End Chrome by terminating the process.
+	*/
 	Kill()
 	{
 		Process, Close, % this.PID
 	}
 	
+	/*
+		Queries chrome for a list of pages that expose a debug interface.
+		In addition to standard tabs, these include pages such as extension
+		configuration pages.
+	*/
 	GetPageList()
 	{
 		http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
@@ -49,6 +68,16 @@
 		return this.Jxon_Load(http.responseText)
 	}
 	
+	/*
+		Returns a connection to the debug interface of a page that matches the
+		provided criteria. When multiple pages match the criteria, they appear
+		ordered by how recently the pages were opened.
+		
+		Key       - The key from the page list to search for, such as "url" or "title"
+		Value     - The value to search for in the provided key
+		MatchMode - What kind of search to use, such as "exact", "contains", "startswith", or "regex"
+		Index     - If multiple pages match the given criteria, which one of them to return
+	*/
 	GetPageBy(Key, Value, MatchMode:="exact", Index:=1)
 	{
 		Count := 0
@@ -63,27 +92,45 @@
 		}
 	}
 	
+	/*
+		Shorthand for GetPageBy("url", Value, "startswith")
+	*/
 	GetPageByURL(Value, MatchMode:="startswith", Index:=1)
 	{
 		this.GetPageBy("url", Value, MatchMode, Index)
 	}
 	
+	/*
+		Shorthand for GetPageBy("title", Value, "startswith")
+	*/
 	GetPageByTitle(Value, MatchMode:="startswith", Index:=1)
 	{
 		this.GetPageBy("title", Value, MatchMode, Index)
 	}
 	
+	/*
+		Shorthand for GetPageBy("type", Type, "exact")
+		
+		The default type to search for is "page", which is the visible area of
+		a normal Chrome tab.
+	*/
 	GetPage(Index:=1, Type:="page")
 	{
 		return this.GetPageBy("type", Type, "exact", Index)
 	}
 	
+	/*
+		Connects to the debug interface of a page given its WebSocket URL.
+	*/
 	class Page
 	{
 		Connected := False
 		ID := 0
 		Responses := []
 		
+		/*
+			wsurl - The desired page's WebSocket URL
+		*/
 		__New(wsurl)
 		{
 			this.BoundKeepAlive := this.Call.Bind(this, "Browser.getVersion",, False)
@@ -100,6 +147,26 @@
 				Sleep, 50
 		}
 		
+		/*
+			Calls the specified endpoint and provides it with the given
+			parameters.
+			
+			DomainAndMethod - The endpoint domain and method name for the
+				endpoint you would like to call. For example:
+				PageInst.Call("Browser.close")
+				PageInst.Call("Schema.getDomains")
+			
+			Params - An associative array of parameters to be provided to the
+				endpoint. For example:
+				PageInst.Call("Page.printToPDF", {"scale": 0.5 ; Numeric Value
+					, "landscape": Chrome.Jxon_True() ; Boolean Value
+					, "pageRanges: "1-5, 8, 11-13"}) ; String value
+				PageInst.Call("Page.navigate", {"url": "https://autohotkey.com/"})
+			
+			WaitForResponse - Whether to block until a response is received from
+				Chrome, which is necessary to receive a return value, or whether
+				to continue on with the script without waiting for a response.
+		*/
 		Call(DomainAndMethod, Params:="", WaitForResponse:=True)
 		{
 			if !this.Connected
@@ -128,6 +195,12 @@
 			return response.result
 		}
 		
+		/*
+			Run some JavaScript on the page. For example:
+			
+			PageInst.Evaluate("alert(""I can't believe it's not IE!"");")
+			PageInst.Evaluate("document.getElementsByTagName('button')[0].click();")
+		*/
 		Evaluate(JS)
 		{
 			response := this.Call("Runtime.evaluate",
@@ -149,15 +222,25 @@
 			return response.result
 		}
 		
+		/*
+			Waits for the page's readyState to match the DesiredState.
+			
+			DesiredState - The state to wait for the page's ReadyState to match
+			Interval     - How often it should check whether the state matches
+		*/
 		WaitForLoad(DesiredState:="complete", Interval:=100)
 		{
 			while this.Evaluate("document.readyState").value != DesiredState
 				Sleep, %Interval%
 		}
 		
+		/*
+			Internal function triggered when the script receives a message on
+			the WebSocket connected to the page.
+		*/
 		Event(EventName, Event)
 		{
-			; Called from WebSocket
+			; If it was called from the WebSocket adjust the class context
 			if this.Parent
 				this := this.Parent
 			
@@ -180,6 +263,13 @@
 			}
 		}
 		
+		/*
+			Disconnect from the page's debug interface, allowing the instance
+			to be garbage collected.
+			
+			This method should always be called when you are finished with a
+			page or else your script will leak memory.
+		*/
 		Disconnect()
 		{
 			if !this.Connected
