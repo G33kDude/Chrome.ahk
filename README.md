@@ -40,7 +40,7 @@ https://chromedevtools.github.io/devtools-protocol/
 To start using this library you need to create an instance of the class `Chrome`. `Chrome`'s constructor accepts four optional parameters:
 
 1. **ProfilePath** - This is the path, relative to the working directory, that your Chrome user profile is located. If an empty folder is given, chrome will generate a new user profile in it. **When this parameter is omitted, Chrome will be launched under the default user profile.** However, if chrome is already running under that user profile out of debug mode, this will fail. Because of this, **it is recommended to always launch Chrome under an alternate user profile.**
-2. **URL** - The page that chrome should initially be opened to. Pass an empty string to open Chrome's homepage. **When this parameter is omitted, Chrome will be opened to `about:blank`.**
+2. **URLs** - The page or array of pages that chrome should initially be opened to. Pass an empty string to open Chrome's homepage. **When this parameter is omitted, Chrome will be opened to `about:blank`.**
 3. **ChromePath** - The path to find the Chrome executable file. **When this parameter is omitted, Chrome will be launched from the path in its start menu entry.**
 4. **DebugPort** - The network port to communicate with Chrome over. **When this parameter is omitted, port `9222` will be used** as specified in the Chrome DevTools Protocol documentation.
 

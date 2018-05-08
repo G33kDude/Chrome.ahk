@@ -10,12 +10,12 @@
 	
 	/*
 		ProfilePath - Path to the user profile directory to use. Will use the standard if left blank.
-		URL         - The page for Chrome to load when it opens
+		URLs        - The page or array of pages for Chrome to load when it opens
 		Flags       - Additional flags for chrome when launching
 		ChromePath  - Path to chrome.exe, will detect from start menu when left blank
 		DebugPort   - What port should Chrome's remote debugging server run on
 	*/
-	__New(ProfilePath:="", URL:="about:blank", Flags:="", ChromePath:="", DebugPort:=9222)
+	__New(ProfilePath:="", URLs:="about:blank", Flags:="", ChromePath:="", DebugPort:="")
 	{
 		; Verify ProfilePath
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
@@ -37,12 +37,15 @@
 			throw Exception("DebugPort must be a positive integer")
 		this.DebugPort := DebugPort
 		
-		; TODO: Support an array of URLs
+		; Escape the URL(s)
+		for Index, URL in IsObject(URLs) ? URLs : [URLs]
+			URLString .= " " this.CliEscape(URL)
+		
 		Run, % this.CliEscape(ChromePath)
 		. " --remote-debugging-port=" this.DebugPort
 		. (ProfilePath ? " --user-data-dir=" this.CliEscape(ProfilePath) : "")
 		. (Flags ? " " Flags : "")
-		. (URL ? " " this.CliEscape(URL) : "")
+		. URLString
 		,,, OutputVarPID
 		this.PID := OutputVarPID
 	}
