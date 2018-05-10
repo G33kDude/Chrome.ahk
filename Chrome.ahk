@@ -1,5 +1,7 @@
 ﻿class Chrome
 {
+	static DebugPort := 9222
+	
 	/*
 		Escape a string in a manner suitable for command line parameters
 	*/
@@ -31,11 +33,14 @@
 		this.ChromePath := ChromePath
 		
 		; Verify DebugPort
-		if DebugPort is not integer
-			throw Exception("DebugPort must be a positive integer")
-		if (DebugPort <= 0)
-			throw Exception("DebugPort must be a positive integer")
-		this.DebugPort := DebugPort
+		if (DebugPort != "")
+		{
+			if DebugPort is not integer
+				throw Exception("DebugPort must be a positive integer")
+			else if (DebugPort <= 0)
+				throw Exception("DebugPort must be a positive integer")
+			this.DebugPort := DebugPort
+		}
 		
 		; Escape the URL(s)
 		for Index, URL in IsObject(URLs) ? URLs : [URLs]
