@@ -76,12 +76,13 @@
 		provided criteria. When multiple pages match the criteria, they appear
 		ordered by how recently the pages were opened.
 		
-		Key       - The key from the page list to search for, such as "url" or "title"
-		Value     - The value to search for in the provided key
-		MatchMode - What kind of search to use, such as "exact", "contains", "startswith", or "regex"
-		Index     - If multiple pages match the given criteria, which one of them to return
+		Key        - The key from the page list to search for, such as "url" or "title"
+		Value      - The value to search for in the provided key
+		MatchMode  - What kind of search to use, such as "exact", "contains", "startswith", or "regex"
+		Index      - If multiple pages match the given criteria, which one of them to return
+		fnCallback - A function to be called whenever message is received from the page
 	*/
-	GetPageBy(Key, Value, MatchMode:="exact", Index:=1)
+	GetPageBy(Key, Value, MatchMode:="exact", Index:=1, fnCallback:="")
 	{
 		Count := 0
 		for n, PageData in this.GetPageList()
@@ -91,24 +92,24 @@
 			|| (MatchMode = "startswith" && InStr(PageData[Key], Value) == 1)
 			|| (MatchMode = "regex" && PageData[Key] ~= Value))
 			&& ++Count == Index)
-				return new this.Page(PageData.webSocketDebuggerUrl)
+				return new this.Page(PageData.webSocketDebuggerUrl, fnCallback)
 		}
 	}
 	
 	/*
 		Shorthand for GetPageBy("url", Value, "startswith")
 	*/
-	GetPageByURL(Value, MatchMode:="startswith", Index:=1)
+	GetPageByURL(Value, MatchMode:="startswith", Index:=1, fnCallback:="")
 	{
-		this.GetPageBy("url", Value, MatchMode, Index)
+		return this.GetPageBy("url", Value, MatchMode, Index, fnCallback)
 	}
 	
 	/*
 		Shorthand for GetPageBy("title", Value, "startswith")
 	*/
-	GetPageByTitle(Value, MatchMode:="startswith", Index:=1)
+	GetPageByTitle(Value, MatchMode:="startswith", Index:=1, fnCallback:="")
 	{
-		this.GetPageBy("title", Value, MatchMode, Index)
+		return this.GetPageBy("title", Value, MatchMode, Index, fnCallback)
 	}
 	
 	/*
@@ -117,9 +118,9 @@
 		The default type to search for is "page", which is the visible area of
 		a normal Chrome tab.
 	*/
-	GetPage(Index:=1, Type:="page")
+	GetPage(Index:=1, Type:="page", fnCallback:="")
 	{
-		return this.GetPageBy("type", Type, "exact", Index)
+		return this.GetPageBy("type", Type, "exact", Index, fnCallback)
 	}
 	
 	/*
@@ -132,10 +133,12 @@
 		Responses := []
 		
 		/*
-			wsurl - The desired page's WebSocket URL
+			wsurl      - The desired page's WebSocket URL
+			fnCallback - A function to be called whenever message is received
 		*/
-		__New(wsurl)
+		__New(wsurl, fnCallback:="")
 		{
+			this.fnCallback := fnCallback
 			this.BoundKeepAlive := this.Call.Bind(this, "Browser.getVersion",, False)
 			
 			; TODO: Throw exception on invalid objects
@@ -257,6 +260,12 @@
 			else if (EventName == "Message")
 			{
 				data := Chrome.Jxon_Load(Event.data)
+				
+				; Run the callback routine
+				fnCallback := this.fnCallback
+				if (newData := %fnCallback%(data))
+					data := newData
+				
 				if this.responses.HasKey(data.ID)
 					this.responses[data.ID] := data
 			}
