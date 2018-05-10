@@ -11,6 +11,47 @@
 	}
 	
 	/*
+		Finds instances of chrome in debug mode and the ports they're running
+		on. If no instances are found, returns a false value. If one or more
+		instances are found, returns an associative array where the keys are
+		the ports, and the values are the full command line texts used to start
+		the processes.
+		
+		One example of how this may be used would be to open chrome on a
+		different port if an instance of chrome is already open on the port
+		you wanted to used.
+		
+		```
+		; If the wanted port is taken, use the largest taken port plus one
+		DebugPort := 9222
+		if (Chromes := Chrome.FindInstances()).HasKey(DebugPort)
+			DebugPort := Chromes.MaxIndex() + 1
+		ChromeInst := new Chrome(ProfilePath,,,, DebugPort)
+		```
+		
+		Another use would be to scan for running instances and attach to one
+		instead of starting a new instance.
+		
+		```
+		if (Chromes := Chrome.FindInstances())
+			ChromeInst := {"base": Chrome, "DebugPort": Chromes.MinIndex()}
+		else
+			ChromeInst := new Chrome(ProfilePath)
+		```
+	*/
+	FindInstances()
+	{
+		static Needle := "--remote-debugging-port=(\d+)"
+		Out := {}
+		for Item in ComObjGet("winmgmts:")
+			.ExecQuery("SELECT CommandLine FROM Win32_Process"
+			. " WHERE Name = 'chrome.exe'")
+			if RegExMatch(Item.CommandLine, Needle, Match)
+				Out[Match1] := Item.CommandLine
+		return Out.MaxIndex() ? Out : False
+	}
+	
+	/*
 		ProfilePath - Path to the user profile directory to use. Will use the standard if left blank.
 		URLs        - The page or array of pages for Chrome to load when it opens
 		Flags       - Additional flags for chrome when launching
