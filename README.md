@@ -44,7 +44,7 @@ To start using this library you need to create an instance of the class `Chrome`
 3. **ChromePath** - The path to find the Chrome executable file. **When this parameter is omitted, Chrome will be launched from the path in its start menu entry.**
 4. **DebugPort** - The network port to communicate with Chrome over. **When this parameter is omitted, port `9222` will be used** as specified in the Chrome DevTools Protocol documentation.
 
-Once an instance of the class `Chrome` has been created, Google Chrome will be launched. To connect to the newly opened page call `PageInstance := ChromeInstance.GetTab()`. Afterward, use `PageInstance.Call()` to call protocol endpoints, and `PageInstance.Evaluate()` to execute JavaScript.
+Once an instance of the class `Chrome` has been created, Google Chrome will be launched. To connect to the newly opened page call `PageInstance := ChromeInstance.GetPage()`. Afterward, use `PageInstance.Call()` to call protocol endpoints, and `PageInstance.Evaluate()` to execute JavaScript.
 
 ```AutoHotkey
 #Include Chrome.ahk

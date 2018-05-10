@@ -237,7 +237,7 @@
 		WaitForLoad(DesiredState:="complete", Interval:=100)
 		{
 			while this.Evaluate("document.readyState").value != DesiredState
-				Sleep, %Interval%
+				Sleep, Interval
 		}
 		
 		/*
