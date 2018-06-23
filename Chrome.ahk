@@ -69,7 +69,7 @@
 		if (ChromePath == "")
 			FileGetShortcut, %A_StartMenuCommon%\Programs\Google Chrome.lnk, ChromePath
 		if (ChromePath == "")
-			RegRead, ChromePath, HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Pahs\chrome.exe
+			RegRead, ChromePath, HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe
 		if !FileExist(ChromePath)
 			throw Exception("Chrome could not be found")
 		this.ChromePath := ChromePath
