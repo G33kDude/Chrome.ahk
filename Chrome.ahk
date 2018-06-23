@@ -270,7 +270,9 @@
 			))
 			
 			if (response.exceptionDetails)
-				throw Exception(response.result.description,, Chrome.Jxon_Dump(response.exceptionDetails))
+				throw Exception(response.result.description, -1
+					, Chrome.Jxon_Dump({"Code": JS
+					, "exceptionDetails": response.exceptionDetails}))
 			
 			return response.result
 		}
