@@ -129,7 +129,7 @@
 		Index      - If multiple pages match the given criteria, which one of them to return
 		fnCallback - A function to be called whenever message is received from the page
 	*/
-	GetPageBy(Key, Value, MatchMode:="exact", Index:=1, fnCallback:="")
+	GetPageBy(Key, Value, MatchMode:="exact", Index:=1, fnCallback:="", fnClose:="")
 	{
 		Count := 0
 		for n, PageData in this.GetPageList()
@@ -139,24 +139,24 @@
 			|| (MatchMode = "startswith" && InStr(PageData[Key], Value) == 1)
 			|| (MatchMode = "regex" && PageData[Key] ~= Value))
 			&& ++Count == Index)
-				return new this.Page(PageData.webSocketDebuggerUrl, fnCallback)
+				return new this.Page(PageData.webSocketDebuggerUrl, fnCallback, fnClose)
 		}
 	}
 	
 	/*
 		Shorthand for GetPageBy("url", Value, "startswith")
 	*/
-	GetPageByURL(Value, MatchMode:="startswith", Index:=1, fnCallback:="")
+	GetPageByURL(Value, MatchMode:="startswith", Index:=1, fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("url", Value, MatchMode, Index, fnCallback)
+		return this.GetPageBy("url", Value, MatchMode, Index, fnCallback, fnClose)
 	}
 	
 	/*
 		Shorthand for GetPageBy("title", Value, "startswith")
 	*/
-	GetPageByTitle(Value, MatchMode:="startswith", Index:=1, fnCallback:="")
+	GetPageByTitle(Value, MatchMode:="startswith", Index:=1, fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("title", Value, MatchMode, Index, fnCallback)
+		return this.GetPageBy("title", Value, MatchMode, Index, fnCallback, fnClose)
 	}
 	
 	/*
@@ -165,9 +165,9 @@
 		The default type to search for is "page", which is the visible area of
 		a normal Chrome tab.
 	*/
-	GetPage(Index:=1, Type:="page", fnCallback:="")
+	GetPage(Index:=1, Type:="page", fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("type", Type, "exact", Index, fnCallback)
+		return this.GetPageBy("type", Type, "exact", Index, fnCallback, fnClose)
 	}
 	
 	/*
@@ -182,10 +182,12 @@
 		/*
 			wsurl      - The desired page's WebSocket URL
 			fnCallback - A function to be called whenever message is received
+			fnClose    - A function to be called whenever the page connection is lost
 		*/
-		__New(wsurl, fnCallback:="")
+		__New(wsurl, fnCallback:="", fnClose:="")
 		{
 			this.fnCallback := fnCallback
+			this.fnClose := fnClose
 			this.BoundKeepAlive := this.Call.Bind(this, "Browser.getVersion",, False)
 			
 			; TODO: Throw exception on invalid objects
@@ -321,6 +323,8 @@
 			else if (EventName == "Close")
 			{
 				this.Disconnect()
+				fnClose := this.fnClose
+				%fnClose%(this)
 			}
 		}
 		
