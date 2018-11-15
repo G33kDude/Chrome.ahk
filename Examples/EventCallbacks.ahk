@@ -1,10 +1,9 @@
-﻿#NoEnv
+#NoEnv
 SetBatchLines, -1
 
 #Include ../Chrome.ahk
 
 TestPages := 3
-
 
 ; --- Define a data URL for the test page ---
 
@@ -20,6 +19,9 @@ data:Text/html, ; This line makes it a URL
 	</head>
 	<body>
 		<button class="someclass">Click Me!</button>
+    <br/>
+    <br/>
+		<button class="someotherclass">Exit App</button>
 	</body>
 </html>
 )
@@ -28,21 +30,15 @@ data:Text/html, ; This line makes it a URL
 ; --- Define some JavaScript to be injected into each page ---
 
 JS =
-( Comments
-; Using a self-invoking anonymous function for scope management
-; https://blog.mgechev.com/2012/08/29/self-invoking-functions-in-javascript-or-immediately-invoked-function-expression/
-(function(){
-	var clickCount = 0;
-	
-	; Whenever the button tag with class someclass is clicked
-	document.querySelector("button.someclass").onclick = function() {
-		clickCount++;
-		
-		; Prefix the message with AHK: so it can be
-		; filtered out in the AHK-based callback function
-		console.log("AHK:" + clickCount);
-	};
-})();
+(
+document.querySelector("button.someclass").onclick = function() {
+	this.counter = this.counter == null ? this.counter = 1 : this.counter+1;
+	console.log("AHK:" + this.counter);
+}
+
+document.querySelector("button.someotherclass").onclick = function(){
+  console.log("AHK:ExitApp");
+}
 )
 
 
@@ -63,8 +59,9 @@ ChromeInst := new Chrome("ChromeProfile", DataURLs)
 PageInstances := []
 Loop, %TestPages%
 {
+	WinWait, Test Page 1 - Google Chrome
 	; Bind the page number to the function for extra information in the callback
-	BoundCallback := Func("Callback").Bind(A_Index)
+	BoundCallback := Func("Callback").Bind(A_Index, ChromeInst, PageInst)
 	
 	; Get an instance of the page, passing in the callback function
 	if !(PageInst := ChromeInst.GetPageByTitle(A_Index, "contains",, BoundCallback))
@@ -81,23 +78,10 @@ Loop, %TestPages%
 	PageInst.Evaluate(JS)
 }
 
-MsgBox, Running... Click OK to exit
+Return
 
 
-; --- Close the Chrome instance ---
-
-try
-	PageInstances[1].Call("Browser.close") ; Fails when running headless
-catch
-	ChromeInst.Kill()
-for Index, PageInst in PageInstances
-	PageInst.Disconnect()
-
-ExitApp
-return
-
-
-Callback(PageNum, Event)
+Callback(PageNum, ChromeInst, PageInst, Event)
 {
 	; Filter for console messages starting with "AHK:"
 	if (Event.Method == "Console.messageAdded"
@@ -105,7 +89,12 @@ Callback(PageNum, Event)
 	{
 		; Strip out the leading AHK:
 		Text := SubStr(Event.params.message.text, 5)
-		
+		If (Text == "ExitApp"){
+      			ChromeInst.Kill()
+			for Index, PageInst in PageInstances
+				PageInst.Disconnect()
+      			ExitApp
+    		}
 		ToolTip, Clicked %Text% times on page %PageNum%
 	}
 }
