@@ -67,7 +67,10 @@
 		
 		; Verify ChromePath
 		if (ChromePath == "")
-			FileGetShortcut, %A_StartMenuCommon%\Programs\Google Chrome.lnk, ChromePath
+			; By using winmgmts to get the path of a shortcut file we fix an edge case where the path is retreived incorrectly
+			; if using the ahk executable with a different architecture than the OS (using 32bit AHK on a 64bit OS for example)
+			 ChromePath := ComObjGet("winmgmts:").ExecQuery("Select * from Win32_ShortcutFile where Name=""" StrReplace(A_StartMenuCommon "\Programs\Google Chrome.lnk", "\", "\\") """").ItemIndex(0).Target
+			; FileGetShortcut, %A_StartMenuCommon%\Programs\Google Chrome.lnk, ChromePath
 		if (ChromePath == "")
 			RegRead, ChromePath, HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe
 		if !FileExist(ChromePath)
