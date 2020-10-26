@@ -313,9 +313,14 @@
 				data := Chrome.Jxon_Load(Event.data)
 				
 				; Run the callback routine
+				fnCallback := this.fnCallback.Bind(this, data)
+				SetTimer, %fnCallback%, -0
+				
+				/*
 				fnCallback := this.fnCallback
 				if (newData := %fnCallback%(data))
 					data := newData
+				*/
 				
 				if this.responses.HasKey(data.ID)
 					this.responses[data.ID] := data
