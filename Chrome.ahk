@@ -62,7 +62,11 @@
 	{
 		; Verify ProfilePath
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
-			throw Exception("The given ProfilePath does not exist")
+		{
+			FileCreateDir, %ProfilePath%
+			if (ErrorLevel = 1)
+				throw Exception("Failed to create the profile directory")
+		}
 		this.ProfilePath := ProfilePath
 		
 		; Verify ChromePath
