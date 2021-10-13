@@ -11,7 +11,6 @@ TestPages := 3
 ; https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs
 DataURL =
 ( Comments
-data:Text/html, ; This line makes it a URL
 <!DOCTYPE html>
 <html>
 	<head>
@@ -51,7 +50,12 @@ JS =
 ; Define an array of pages to open
 DataURLs := []
 Loop, %TestPages%
-	DataURLs.Push(Format(DataURL, A_Index))
+{
+	File := Format("{}\{}.html", A_Temp, A_Index)
+	FileDelete, % File
+	FileAppend, % Format(DataURL, A_Index), % File
+	DataURLs.Push(File)
+}
 
 ; Open Chrome with those pages
 FileCreateDir, ChromeProfile
@@ -67,7 +71,7 @@ Loop, %TestPages%
 	BoundCallback := Func("Callback").Bind(A_Index)
 	
 	; Get an instance of the page, passing in the callback function
-	if !(PageInst := ChromeInst.GetPageByTitle(A_Index, "contains",, BoundCallback))
+	if !(PageInst := ChromeInst.GetPageByTitle(A_Index, "contains",,, BoundCallback))
 	{
 		MsgBox, Could not retrieve page %A_Index%!
 		ChromeInst.Kill()
