@@ -123,8 +123,8 @@
 	{
 		ComObjError(0)
 		http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-		; It is easy to fail here because "new chrome ()" takes a long time to execute.
-		; Therefore, it will be tried again and again within 10 seconds until it succeeds or times out.
+		; It is easy to fail here because "new chrome()" takes a long time to execute.
+		; Therefore, it will be tried again and again within 10 seconds until it succeeds or timeout.
 		StartTime := A_TickCount
 		while (A_TickCount-StartTime < 10*1000)
 		{
@@ -150,9 +150,10 @@
 		Value      - The value to search for in the provided key
 		MatchMode  - What kind of search to use, such as "exact", "contains", "startswith", or "regex"
 		Index      - If multiple pages match the given criteria, which one of them to return
+		Timeout    - Maximum number of seconds to wait for the page connection
 		fnCallback - A function to be called whenever message is received from the page
 	*/
-	GetPageBy(Key, Value, MatchMode:="exact", Index:=1, fnCallback:="", fnClose:="")
+	GetPageBy(Key, Value, MatchMode:="exact", Index:=1, Timeout:=30, fnCallback:="", fnClose:="")
 	{
 		Count := 0
 		for n, PageData in this.GetPageList()
@@ -162,24 +163,24 @@
 			|| (MatchMode = "startswith" && InStr(PageData[Key], Value) == 1)
 			|| (MatchMode = "regex" && PageData[Key] ~= Value))
 			&& ++Count == Index)
-				return new this.Page(PageData.webSocketDebuggerUrl, fnCallback, fnClose)
+				return new this.Page(PageData.webSocketDebuggerUrl, Timeout, fnCallback, fnClose)
 		}
 	}
 	
 	/*
 		Shorthand for GetPageBy("url", Value, "startswith")
 	*/
-	GetPageByURL(Value, MatchMode:="startswith", Index:=1, fnCallback:="", fnClose:="")
+	GetPageByURL(Value, MatchMode:="startswith", Index:=1, Timeout:=30, fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("url", Value, MatchMode, Index, fnCallback, fnClose)
+		return this.GetPageBy("url", Value, MatchMode, Index, Timeout, fnCallback, fnClose)
 	}
 	
 	/*
 		Shorthand for GetPageBy("title", Value, "startswith")
 	*/
-	GetPageByTitle(Value, MatchMode:="startswith", Index:=1, fnCallback:="", fnClose:="")
+	GetPageByTitle(Value, MatchMode:="startswith", Index:=1, Timeout:=30, fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("title", Value, MatchMode, Index, fnCallback, fnClose)
+		return this.GetPageBy("title", Value, MatchMode, Index, Timeout, fnCallback, fnClose)
 	}
 	
 	/*
@@ -188,9 +189,9 @@
 		The default type to search for is "page", which is the visible area of
 		a normal Chrome tab.
 	*/
-	GetPage(Index:=1, Type:="page", fnCallback:="", fnClose:="")
+	GetPage(Index:=1, Type:="page", Timeout:=30, fnCallback:="", fnClose:="")
 	{
-		return this.GetPageBy("type", Type, "exact", Index, fnCallback, fnClose)
+		return this.GetPageBy("type", Type, "exact", Index, Timeout, fnCallback, fnClose)
 	}
 	
 	/*
@@ -204,13 +205,15 @@
 		
 		/*
 			wsurl      - The desired page's WebSocket URL
+			timeout    - Maximum number of seconds to wait for the page connection
 			fnCallback - A function to be called whenever message is received
 			fnClose    - A function to be called whenever the page connection is lost
 		*/
-		__New(wsurl, fnCallback:="", fnClose:="")
+		__New(wsurl, timeout:=30, fnCallback:="", fnClose:="")
 		{
 			this.fnCallback := fnCallback
 			this.fnClose := fnClose
+			; Here is no waiting for a response so no need to add a timeout
 			this.BoundKeepAlive := this.Call.Bind(this, "Browser.getVersion",, False)
 			
 			; TODO: Throw exception on invalid objects
@@ -219,10 +222,17 @@
 			
 			wsurl := StrReplace(wsurl, "localhost", "127.0.0.1")
 			this.ws := {"base": this.WebSocket, "_Event": this.Event, "Parent": this}
-			this.ws.__New(wsurl)
+			this.ws.__New(wsurl, timeout)
 			
+			; The timeout here is perhaps duplicated with the previous line
+			StartTime := A_TickCount
 			while !this.Connected
-				Sleep, 50
+			{
+				if (A_TickCount-StartTime > timeout*1000)
+					throw Exception("Page connection timeout")
+				else
+					Sleep, 50
+			}
 		}
 		
 		/*
@@ -244,8 +254,10 @@
 			WaitForResponse - Whether to block until a response is received from
 				Chrome, which is necessary to receive a return value, or whether
 				to continue on with the script without waiting for a response.
+			
+			Timeout - Maximum number of seconds to wait for a response.
 		*/
-		Call(DomainAndMethod, Params:="", WaitForResponse:=True)
+		Call(DomainAndMethod, Params:="", WaitForResponse:=True, Timeout:=30)
 		{
 			if !this.Connected
 				throw Exception("Not connected to tab")
@@ -262,8 +274,14 @@
 			
 			; Wait for the response
 			this.responses[ID] := False
+			StartTime := A_TickCount
 			while !this.responses[ID]
-				Sleep, 50
+			{
+				if (A_TickCount-StartTime > Timeout*1000)
+					throw Exception(DomainAndMethod " response timeout")
+				else
+					Sleep, 50
+			}
 			
 			; Get the response, check if it's an error
 			response := this.responses.Delete(ID)
@@ -279,7 +297,7 @@
 			PageInst.Evaluate("alert(""I can't believe it's not IE!"");")
 			PageInst.Evaluate("document.getElementsByTagName('button')[0].click();")
 		*/
-		Evaluate(JS)
+		Evaluate(JS, Timeout:=30)
 		{
 			response := this.Call("Runtime.evaluate",
 			( LTrim Join
@@ -292,7 +310,7 @@
 				"userGesture": Chrome.Jxon_True(),
 				"awaitPromise": Chrome.Jxon_False()
 			}
-			))
+			), Timeout)
 			
 			if (response.exceptionDetails)
 				throw Exception(response.result.description, -1
@@ -307,11 +325,18 @@
 			
 			DesiredState - The state to wait for the page's ReadyState to match
 			Interval     - How often it should check whether the state matches
+			Timeout      - Maximum number of seconds to wait for the page's ReadyState to match
 		*/
-		WaitForLoad(DesiredState:="complete", Interval:=100)
+		WaitForLoad(DesiredState:="complete", Interval:=100, Timeout:=30)
 		{
+			StartTime := A_TickCount
 			while this.Evaluate("document.readyState").value != DesiredState
-				Sleep, Interval
+			{
+				if (A_TickCount-StartTime > Timeout*1000)
+					throw Exception("Wait for page " DesiredState " timeout")
+				else
+					Sleep, Interval
+			}
 		}
 		
 		/*
@@ -372,8 +397,8 @@
 			this.Delete("BoundKeepAlive")
 		}
 		
-		#Include %A_LineFile%\..\lib\WebSocket.ahk\WebSocket.ahk
+		#IncludeAgain %A_LineFile%\..\lib\WebSocket.ahk\WebSocket.ahk
 	}
 	
-	#Include %A_LineFile%\..\lib\AutoHotkey-JSON\Jxon.ahk
+	#IncludeAgain %A_LineFile%\..\lib\AutoHotkey-JSON\Jxon.ahk
 }
