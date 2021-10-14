@@ -119,23 +119,22 @@
 	*/
 	GetPageList()
 	{
-		ComObjError(0)
 		http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-		; It is easy to fail here because "new chrome()" takes a long time to execute.
-		; Therefore, it will be tried again and again within 10 seconds until it succeeds or timeout.
 		StartTime := A_TickCount
 		while (A_TickCount-StartTime < 10*1000)
 		{
-			http.SetTimeouts(30000, 30000, 30000, 30000)
-			http.Open("GET", "http://127.0.0.1:" this.DebugPort "/json", true)
-			http.Send()
-			http.WaitForResponse(-1)
-			if (http.Status = 200)
-				break
-			else
-				Sleep, 1000
+			; It is easy to fail here because "new chrome()" takes a long time to execute.
+			; Therefore, it will be tried again and again within 10 seconds until it succeeds or timeout.
+			try
+			{
+				http.Open("GET", "http://127.0.0.1:" this.DebugPort "/json", true)
+				http.Send()
+				http.WaitForResponse(-1)
+				if (http.Status = 200)
+					break
+			}
+			Sleep, 50
 		}
-		ComObjError(1)
 		return this.Jxon_Load(http.responseText)
 	}
 	
