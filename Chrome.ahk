@@ -108,7 +108,19 @@
 		. (Flags ? " " Flags : "")
 		. URLString
 		,,, OutputVarPID
-		this.PID := OutputVarPID
+		; this.PID := OutputVarPID
+
+		; Fix PIDs Conflict when use Run[Command]
+		; ahk run pid is not same as shown in Window Spy
+		;// sleep a bit
+		Sleep, 1000
+		WinWait, % "ahk_exe chrome.exe"
+		;// get the hwnd of the last found window (the window we waited for above)
+		hwnd := WinExist()
+		;// and if you for some reason really need the PID, you can do e.g this to get it
+		WinGet, pid, PID, % "ahk_id " hwnd
+		this.PID := pid
+
 	}
 	
 	/*
