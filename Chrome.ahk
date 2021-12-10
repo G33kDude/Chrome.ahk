@@ -60,10 +60,21 @@
 	*/
 	__New(ProfilePath:="", URLs:="about:blank", Flags:="", ChromePath:="", DebugPort:="")
 	{
+		; Get LocalAppData Env (Default Chrome User Data)
+		EnvGet, A_LocalAppData, LocalAppData
+		ProfilePath = %A_LocalAppData%\Google\Chrome\User Data\%ProfilePath%
 		; Verify ProfilePath
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
-			throw Exception("The given ProfilePath does not exist")
-		this.ProfilePath := ProfilePath
+		{
+			; Create Profile if Not Exist
+			FileCreateDir, %folderPath%
+			this.ProfilePath := " --user-data-dir=" this.CliEscape(folderPath)
+			; throw Exception("The given ProfilePath does not exist")
+		}
+		else
+		{
+			this.ProfilePath := ProfilePath
+		}
 		
 		; Verify ChromePath
 		if (ChromePath == "")
