@@ -202,9 +202,8 @@
 			if IsObject(wsurl)
 				wsurl := wsurl.webSocketDebuggerUrl
 			
-			wsurl := StrReplace(wsurl, "localhost", "127.0.0.1")
-			this.ws := {"base": this.WebSocket, "_Event": this.Event, "Parent": this}
-			this.ws.__New(wsurl)
+			ws := {"base": this.WebSocket, "_Event": this.Event, "Parent": this}
+			this.ws := new ws(wsurl)
 			
 			while !this.Connected
 				Sleep, 50
@@ -309,8 +308,11 @@
 			if this.Parent
 				this := this.Parent
 			
-			; TODO: Handle Error events
-			if (EventName == "Open")
+			if (EventName == "Error")
+			{
+				throw Exception("Error: " Event.code)
+			}
+			else if (EventName == "Open")
 			{
 				this.Connected := True
 				BoundKeepAlive := this.BoundKeepAlive
