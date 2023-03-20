@@ -63,7 +63,10 @@
 		; Verify ProfilePath
 		if (ProfilePath != "" && !InStr(FileExist(ProfilePath), "D"))
 			throw Exception("The given ProfilePath does not exist")
-		this.ProfilePath := ProfilePath
+		cc := DllCall("GetFullPathName", "str", ProfilePath, "uint", 0, "ptr", 0, "ptr", 0, "uint")
+		VarSetCapacity(buf, cc*(A_IsUnicode?2:1))
+		DllCall("GetFullPathName", "str", ProfilePath, "uint", cc, "str", buf, "ptr", 0, "uint")
+		this.ProfilePath := ProfilePath := buf
 		
 		; Verify ChromePath
 		if (ChromePath == "")
