@@ -97,6 +97,7 @@
 		
 		Run, % this.CliEscape(ChromePath)
 		. " --remote-debugging-port=" this.DebugPort
+		. " --remote-allow-origins=*"
 		. (ProfilePath ? " --user-data-dir=" this.CliEscape(ProfilePath) : "")
 		. (Flags ? " " Flags : "")
 		. URLString
