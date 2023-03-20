@@ -1,5 +1,7 @@
 ﻿class Chrome
 {
+	static version := "1.3.0-git"
+	
 	static DebugPort := 9222
 	
 	/*
