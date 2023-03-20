@@ -91,6 +91,7 @@
 		}
 		
 		; Escape the URL(s)
+		URLString := ""
 		for Index, URL in IsObject(URLs) ? URLs : [URLs]
 			URLString .= " " this.CliEscape(URL)
 		
