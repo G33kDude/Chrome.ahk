@@ -57,6 +57,7 @@ Loop, %TestPages%
 FileCreateDir, ChromeProfile
 ChromeInst := new Chrome("ChromeProfile", DataURLs)
 
+Sleep, 2000
 
 ; --- Connect to the pages ---
 
