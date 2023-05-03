@@ -2,6 +2,7 @@
 
 Automate Google Chrome using native AutoHotkey.
 
+For AHKv2, a port can be found here: https://github.com/thqby/ahk2_lib/blob/master/Chrome.ahk
 
 ## How it works
 
